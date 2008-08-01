@@ -1,0 +1,38 @@
+/**
+ * @file
+ * Invoice module
+ * 
+ * This module was developed by Platina Designs, http://www.platinadesigns.nl
+ *
+ * @author Pieter Vogelaar <ps.vogelaar@platinadesigns.nl>
+ */
+
+TODO
+==============================
+
+MUST:
+
+
+NICE:
+* Sorting of invoice items with DRAG and DROP => http://api.drupal.org/api/function/drupal_add_tabledrag
+* Cancel button with editing invoice item
+* Move AJAX JS into a external JS file.
+* Make invoice list sortable on customer company name / lastname, firstname
+* Set invoice number with textfield, this number can must be greater than the latest invoice number
+* Confirm message when clicking on a delete icon
+* After adding an invoice item move the cursor back to the invoice item description field
+* Pay status filter in invoice list
+* Overtime status filter
+* Company filter (auto complete field)
+
+VERY NICE:
+* Invoice number format, 12345, 2008001, 200806001, etc.
+* After invoice item delete set odd/even rows again
+* Sending reminders, when exceeding pay limit
+* Generate invoice only once and output it to a PDF file for better performance and reduce of CPU
+  - Display in the invoice l man ist a regenerate invoice  icon
+* Print "COPY" image on the invoice, for archive purposes
+* Do code review with the coder module to be compatibale with Drupal coding standards
+
+BUGS:
+* Search on a customer starting with "f" or other sprintf() like characters go wrong

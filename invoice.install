@@ -1,0 +1,96 @@
+<?php
+// $Id$
+
+/**
+ * @file
+ * Invoice module
+ * 
+ * This module was developed by Platina Designs, http://www.platinadesigns.nl
+ *
+ * @author Pieter Vogelaar <ps.vogelaar@platinadesigns.nl>
+ */
+
+/**
+ * Implementation of hook_install()
+ */
+function invoice_install() {
+  db_query("    
+    CREATE TABLE `invoice_customers` (
+      `cid` int(10) unsigned NOT NULL auto_increment,
+      `customer_number` int(11) unsigned NOT NULL default '0',
+      `company_name` varchar(100) NOT NULL,
+      `firstname` varchar(50) NOT NULL,
+      `lastname` varchar(50) NOT NULL,
+      `street` varchar(100) NOT NULL,
+      `building_number` varchar(100) NOT NULL,
+      `zipcode` varchar(10) NOT NULL,
+      `city` varchar(50) NOT NULL,
+      `country` varchar(50) NOT NULL,
+      `coc_number` varchar(25) NOT NULL,
+      `vat_number` varchar(25) NOT NULL,
+      `description` text NOT NULL,
+      `invoice_id` int(11) unsigned NOT NULL default '0',
+      PRIMARY KEY  (`cid`),
+      KEY `invoice_id` (`invoice_id`)
+    ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 PACK_KEYS=0;
+    
+    CREATE TABLE `invoice_invoices` (
+      `iid` int(11) unsigned NOT NULL default '0',
+      `nid` int(11) unsigned NOT NULL,
+      `description` text NOT NULL,
+      `tid` int(11) unsigned NOT NULL,
+      `pay_limit` int(3) NOT NULL,
+      `pay_status` enum('unpaid','paid') NOT NULL default 'unpaid',
+      `depricated_created` timestamp NOT NULL default CURRENT_TIMESTAMP,
+      `uid` int(10) default NULL,
+      PRIMARY KEY  (`iid`),
+      KEY `nid` (`nid`),
+      KEY `uid` (`uid`)
+    ) ENGINE=MyISAM DEFAULT CHARSET=utf8 PACK_KEYS=0;
+                
+    CREATE TABLE `invoice_items` (
+      `iid` int(11) unsigned NOT NULL auto_increment,
+      `description` mediumtext NOT NULL,
+      `quantity` double NOT NULL default '0',
+      `unitcost` double NOT NULL default '0',
+      `vat` double NOT NULL default '0',
+      `weight` tinyint(2) NOT NULL,
+      `invoice_id` int(11) unsigned NOT NULL default '0',
+      `uid` int(10) unsigned NOT NULL,
+      `created` timestamp NOT NULL default CURRENT_TIMESTAMP,
+      PRIMARY KEY  (`iid`),
+      KEY `invoice_id` (`invoice_id`),
+      KEY `uid` (`uid`)
+    ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 PACK_KEYS=0;
+        
+    CREATE TABLE `invoice_templates` (
+      `tid` int(11) NOT NULL auto_increment,
+      `name` varchar(100) NOT NULL,
+      `locale` varchar(25) NOT NULL,
+      `date_format` varchar(50) NOT NULL,
+      `vat` double NOT NULL,
+      `pay_limit` int(3) NOT NULL,
+      `supplier_company_name` varchar(100) NOT NULL,
+      `supplier_street` varchar(100) NOT NULL,
+      `supplier_building_number` varchar(100) NOT NULL,
+      `supplier_zipcode` varchar(100) NOT NULL,
+      `supplier_city` varchar(100) NOT NULL,
+      `supplier_country` varchar(100) NOT NULL,
+      `supplier_phone` varchar(100) NOT NULL,
+      `supplier_fax` varchar(100) NOT NULL,
+      `supplier_email` varchar(100) NOT NULL,
+      `supplier_web` varchar(100) NOT NULL,
+      `supplier_coc_number` varchar(100) NOT NULL,
+      `supplier_vat_number` varchar(100) NOT NULL,
+      PRIMARY KEY  (`tid`),
+      UNIQUE KEY `name` (`name`)
+    ) ENGINE=MyISAM  DEFAULT CHARSET=utf8 PACK_KEYS=0;
+  ");
+  
+  variable_set('invoice_locale', 'en_US.utf8');
+  variable_set('invoice_date_format', 'm/d/Y');
+  variable_set('invoice_pay_limit', '14'); // Pay limit in days
+  variable_set('invoice_vat', '19'); // VAT percentage
+  variable_set('invoice_default_template', 'default');
+  variable_set('invoice_supplier_company_name', 'My company');
+}
