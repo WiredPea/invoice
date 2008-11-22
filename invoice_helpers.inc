@@ -95,19 +95,101 @@ function _invoice_get_new_invoice_number($user_defined_invoice_number_check=FALS
       return 0;
     }
     else {
-      return db_result(db_query("SELECT MAX(iid) FROM {invoice_invoices}"));
+      return db_result(db_query("SELECT iid FROM {invoice_invoices} ORDER BY nid DESC LIMIT 1"));
     }
   }
-  
-  $count = db_result(db_query("SELECT COUNT(*) FROM {invoice_invoices} WHERE iid LIKE '%". date("Ym") ."%'"));
-  if ($count > 0) {
-    $new_invoice_number = db_result(db_query("SELECT MAX(iid) FROM {invoice_invoices}")) + 1;
-  }
-  else {
-    $new_invoice_number = date('Ym') .'001';
-   }
- 
+
+  $new_invoice_number = db_result(db_query("SELECT iid FROM {invoice_invoices} ORDER BY nid DESC LIMIT 1")) + 1;
+   
   return $new_invoice_number;
+}
+
+/**
+ * Helper function get a formatted invoice number
+ *
+ * @param integer $invoice_number
+ * @param mixed $formatted_invoice_number
+ */
+function _invoice_get_formatted_invoice_number($invoice_number, $node = NULL) {
+	$formatted_invoice_number = $invoice_number;
+	
+	if (is_null($node)) {
+		$invoice_settings = db_fetch_array(db_query("SELECT leading_zeros,prefix FROM {invoice_invoices} WHERE iid=%d", $invoice_number));
+		
+		$invoice_number_zerofill = $invoice_settings['leading_zeros'];
+		$invoice_number_prefix = $invoice_settings['prefix'];
+	}
+	else {
+		$invoice_number_zerofill = $node->invoice_invoice_number_zerofill;
+		$invoice_number_prefix = $node->invoice_invoice_number_prefix;
+	}
+	
+	// Add leading zeros
+	$formatted_invoice_number = sprintf("%0". $invoice_number_zerofill ."d", $formatted_invoice_number);
+	
+	// Add prefix
+	$prefix_string = $invoice_number_prefix;
+	$possible_date_arguments = _invoice_get_possible_date_arguments();
+	
+	$exp = explode('%', $prefix_string);
+	$i = 0;
+	foreach ($exp as $key => $value) {
+		$i++;
+		// If prefix string didn't start with %, the first characters are never a date argument		
+		if (substr($prefix_string, 0, 1) == '%' || $i > 1) {
+			if (strlen($value) == 1) {
+				if (in_array($value, $possible_date_arguments)) {
+				  $exp[$key] = date($value);	
+				}
+			}
+			else {
+				if (in_array(substr($value, 0, 1), $possible_date_arguments)) {
+					$exp[$key] = date(substr($value, 0, 1));
+					
+					// Add the rest of the string which was not supposed to be a date argument
+					$exp[$key] .= substr($value, 1);
+				}
+			}
+		}
+	}
+	
+	$prefix = implode('', $exp);
+	
+	$formatted_invoice_number = $prefix . $formatted_invoice_number;
+	
+	return $formatted_invoice_number;
+}
+
+/**
+ * Returns all possible date arguments
+ *
+ * @return array
+ */
+function _invoice_get_possible_date_arguments() {
+	$possible_date_arguments = array (
+	  // Day
+	  'd', 'D', 'j', 'l', 'N', 'S', 'w', 'z',
+	
+	  // Week
+	  'W',
+	
+	  // Month
+	  'F', 'm', 'M', 'n', 't',
+	
+	  // Year
+	  'L', 'o', 'Y', 'y',
+	
+	  // Time
+	  'a', 'A', 'B', 'g', 'G', 'h', 'H', 'i', 's', 'u',
+	
+	  // timezone
+	  'e', 'I', 'O', 'P', 'T', 'Z',
+	
+	  // Full Date / Time
+	  'c', 'r', 'U'
+	);
+	
+	return $possible_date_arguments;
 }
 
 /**
@@ -158,7 +240,12 @@ function _invoice_get_templates() {
  * Helper function to get template variables
  */
 function _invoice_get_variable($template, $name, $default=NULL) {
-  static $a_templates = NULL;
+  // if $template is empty, check if a general/default value is available
+	if (empty($template)) {
+  	return variable_get('invoice_'. $name, '');
+  }
+	
+	static $a_templates = NULL;
 
   // Get all template settings from the database only one time
   if (!is_array($a_templates)) {
@@ -170,11 +257,11 @@ function _invoice_get_variable($template, $name, $default=NULL) {
       $a_templates[$row['name']] = $row;
     }
   }
-  
+    
   // Get template info that is stored in the database
   $a_template = $a_templates[$template];
   
-  if (!empty($a_template[$name])) {
+  if (!empty($a_template[$name]) || is_numeric($a_template[$name])) {
     return $a_template[$name];
   }
   else {
@@ -243,8 +330,43 @@ function _invoice_getvars_string_to_array($s_vars) {
 }
 
 /**
+ * Returns installed locales on the system
+ *
+ * @return array
+ */
+function _invoice_get_installed_system_locales() {
+    ob_start();
+    system('locale -a');
+    $str = ob_get_contents();
+    ob_end_clean();    
+    $list = explode("\n", trim($str));
+    
+    return $list;
+}
+
+/**
+ * Makes sure that node promote flag is off
+ *
+ * On ?q=admin/content/node-type/invoice there is a checkbox in the workflow fieldset that is
+ * called "Promoted to front page", if this is turned on invoices will be displayed at ?q=node
+ * global node overview. Because invoices are private, I guess this must always be disabled
+ * for anyone.
+ */
+function _make_sure_node_promote_flag_is_off() {
+  $node_options = variable_get('node_options_invoice', array());
+  if (in_array('promote', $node_options)) {
+    foreach ($node_options as $key => $option) {
+      if ($option == 'promote') {
+        unset($node_options[$key]);
+      }
+    }
+  }
+  variable_set('node_options_invoice', $node_options);
+}
+
+/**
  * Helper function to include the dompdf library
  */
-function invoice_dompdf_include_lib() {
+function _invoice_dompdf_include_lib() {
   require_once(dirname(__FILE__) .'/dompdf/dompdf_config.inc.php');	
 }

@@ -200,7 +200,7 @@ function invoice_search_customer($value) {
 
   $result = db_query("SELECT * FROM {invoice_customers} ic
     LEFT JOIN {invoice_invoices} ii ON ic.invoice_id=ii.iid  
-    WHERE ii.uid=%d AND (company_name LIKE '%". $customer_value ."%' OR lastname LIKE '%". $customer_value ."%' OR firstname LIKE '%". $customer_value ."%')
+    WHERE ii.uid=%d AND (company_name LIKE '%%". $customer_value ."%' OR lastname LIKE '%%". $customer_value ."%' OR firstname LIKE '%%". $customer_value ."%')
     GROUP BY vat_number,coc_number,company_name,country,city,zipcode,building_number,lastname,firstname
     ORDER BY company_name, lastname, firstname, invoice_id DESC",
     $GLOBALS['user']->uid
@@ -327,13 +327,14 @@ function invoice_save_item() {
   else {
     // Insert invoice item into the invoice items table
     db_query("INSERT INTO {invoice_items}
-      (description,vat,quantity,unitcost,invoice_id,uid) VALUES ('%s',%f,%f,%f,%d,%d)",
+      (description,vat,quantity,unitcost,invoice_id,uid,created) VALUES ('%s',%f,%f,%f,%d,%d,'%s')",
       $fv['description'],
       $fv['vat'],
       $fv['quantity'],
       $unitcost,
       $fv['invoice_number'],
-      $GLOBALS['user']->uid
+      $GLOBALS['user']->uid,
+      date('Y-m-d H:i:s')
     );
   }
 

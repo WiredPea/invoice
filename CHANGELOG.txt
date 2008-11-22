@@ -1,0 +1,41 @@
+/**
+ * @file CHANGELOG.txt
+ * @brief Invoice module
+ * 
+ * This module was developed by Platina Designs, http://www.platinadesigns.nl
+ *
+ * @author Pieter Vogelaar <ps.vogelaar@platinadesigns.nl>
+ */
+ 
+CHANGELOG (Date format: dd-mm-yyyy)
+=========================================
+
+22-11-2008:
+* Update dutch translation file
+* Added a solid solution for removing invoices from "node" overview
+
+19-11-2008:
+* Added support for: Invoice number format, 12345, 2008001, 200806001, etc.
+  - It's possible now to prefix invoice number with whatever, for example A2008001.
+
+12-11-2008:
+* Display invoice comments on the invoice template
+* Display pay limit on the invoice template
+* Added: Global, per template set which fields to display on the invoice: VAT, Unitcost (ex), Unitcost (inc), Total (ex), Total (inc)
+* FIXED BUG: Default template settings seem to don't inherit from general settings
+  - Inheriting worked fine, made a small ajustment so it works even smoother now.
+  - The main problem was that the preferred locale was not installed on the system. I made that form description more complete now
+    and added a list which displays installed locales on the system.  
+* Added: Translate file for dutch language
+
+11-11-2008:
+* FIXED BUG: Functions can never have the same name, also when including just one template (Fatal error: Cannot redeclare _invoice_get_template_output())
+* FIXED BUG: Installer is not correct and must be updated (we're using schema files now)
+* Added and tested invoice_update_1() function, works 100% correct.
+
+01-11-2008:
+* FIXED BUG: Search on a customer starting with "f" or other sprintf() like characters go wrong
+
+...
+..
+.

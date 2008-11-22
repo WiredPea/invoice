@@ -16,6 +16,14 @@
 function invoice_form(&$form_state, $node) {
   _invoice_add_css_js();
   
+  // If an invoice number is available we are in editing mode
+  if (!empty($form_state->invoice['invoice_number'])) {
+  	$mode = 'edit';
+  }
+  else {
+  	$mode = 'create';
+  }
+  
   $form = array();
   $form['invoice_template'] = array(
     '#type' => 'fieldset',
@@ -54,7 +62,7 @@ function invoice_form(&$form_state, $node) {
     '#title' => t('Customer details'),
     '#collapsible' => TRUE,
     '#collapsed' => FALSE,
-    '#description' => t('You either have to fill in Company name or Lastname. Firstname is optional and is only saved if a lastname is filled in.'),
+    '#description' => t('You either have to fill in Company name or Lastname. Firstname is optional and is only saved if a Lastname is filled in.'),
     '#weight' => 2,
   );
   $form['customer']['search'] = array(
@@ -90,7 +98,7 @@ function invoice_form(&$form_state, $node) {
     t('Unitcost (ex. VAT)'),
     t('Unitcost (inc. VAT)'),
     t('Subtotal (ex. VAT)'),
-    t('Subtotal (ex. VAT'),
+    t('Subtotal (inc. VAT)'),
     '',
   );
   
@@ -113,7 +121,7 @@ function invoice_form(&$form_state, $node) {
   }
   
   // Get invoice items
-   $a_items = _invoice_get_invoice_items($form_state->invoice['invoice_number']);
+  $a_items = _invoice_get_invoice_items($form_state->invoice['invoice_number']);
   $count = $a_items['count'];
   $invoice_items_table_rows = $a_items['rows'];
 
@@ -131,7 +139,7 @@ function invoice_form(&$form_state, $node) {
   }
   
   $invoice_items_table = theme('invoice_table', $invoice_items_table_header, $invoice_items_table_rows, array('disable_sticky_header' => TRUE));
-  $invoice_items_table_footer = '<tfoot><tr><td colspan="5"></td><td class="extotal">'. money_format('%.2n', _invoice_round($total->extotal, 2)) .'</td><td class="inctotal">'. money_format('%.2n', _invoice_round($total->inctotal, 2)) .'</td></tr></tfoot>';
+  $invoice_items_table_footer = '<tfoot><tr><td colspan="5"></td><td class="extotal">'. money_format('%.2n', _invoice_round($total->extotal, 2)) .'</td><td class="inctotal">'. money_format('%.2n', _invoice_round($total->inctotal, 2)) .'</td><td></td></tr></tfoot>';
   $invoice_items_table = str_replace('</table>', $invoice_items_table_footer .'</table>', $invoice_items_table);
   
   $form['invoice_items']['items'] = array(
@@ -249,7 +257,7 @@ function invoice_form(&$form_state, $node) {
       '#required' => FALSE,
       '#default_value' => '',
       '#attributes' => array('style' => 'width:200px;'), // size attribute didn't work here for some strange reason
-      '#description' => t('You can define an invoice number here. The number has to be higher than the latest invoice number though. It also has to be a number.'),
+      '#description' => t('You can define an invoice number here. The number has to be higher than the latest invoice number though. It also has to be numeric.'),
     );
   }
   $form['invoice_details']['invoice_number'] = array(
@@ -272,7 +280,25 @@ function invoice_form(&$form_state, $node) {
     '#required' => FALSE,
     '#default_value' => $form_state->invoice['description'],
   );
-
+  $form['invoice_details']['invoice_invoice_number_zerofill'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Invoice number zerofill'),
+    '#required' => FALSE,
+    '#default_value' => empty($form_state->invoice['invoice_number_zerofill']) && $mode == 'create' ? variable_get('invoice_invoice_number_zerofill', 0) : $form_state->invoice['invoice_number_zerofill'],
+    '#attributes' => array('style' => 'width:40px;'), // size attribute didn't work here for some strange reason
+    '#description' => t('If you want an invoice number to be displayed as "0001" fill in 4. If you just want to display invoice number "1" leave/set empty.'),
+  );
+  $form['invoice_details']['invoice_invoice_number_prefix'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Invoice number prefix'),
+    '#required' => FALSE,
+    '#default_value' => empty($form_state->invoice['invoice_number_prefix']) && $mode == 'create' ? variable_get('invoice_invoice_number_prefix', '') : $form_state->invoice['invoice_number_prefix'],
+    '#attributes' => array('style' => 'width:150px;'), // size attribute didn't work here for some strange reason
+    '#description' => t('If you want an invoice number to be displayed as "@year0001" fill in "%Y". Fillin 4 in the zerofill field above for extra zero values.', array('@year' => date('Y')))
+                    .' '. t('If a new year is reached the numbering will still continue sequentially, so if the year ended with "@year0578", the next year will start with "@next_year0579"', array('@year' => date('Y'), '@next_year' => date('Y') + 1))
+                    .' '. t('All !date values may be entered here with a "%" sign before it or every other text you like.', array('!date' => l('date', 'http://www.php.net/date', array('absolute' => TRUE)))),
+  );
+  
   return $form;
 }
 
@@ -280,7 +306,7 @@ function invoice_form(&$form_state, $node) {
  * Invoice settings form
  */
 function invoice_settings_form() {
-    
+  
   // Get template names
   $a_templates = _invoice_get_templates();
   
@@ -295,12 +321,15 @@ function invoice_settings_form() {
     '#title' => t('Locale'),
     '#required' => TRUE,
     '#default_value' => variable_get('invoice_locale', ''),
-    '#description' => t('Category/locale names can be found in !rfc1766 and !iso639. Different systems have different naming schemes for locales.',
+    '#description' => t('Category/locale names can be found in !rfc1766 and !iso639. Systems can have different naming schemes for locales.',
       array(
        '!rfc1766' => l('» RFC 1766', 'http://www.faqs.org/rfcs/rfc1766', array('absolute' => TRUE)),
        '!iso639' => l('» ISO 639', 'http://www.w3.org/WAI/ER/IG/ert/iso639.htm', array('absolute' => TRUE)),
       )
-    ),
+    ) .' '. t('On linux you can check the available locales on the server with the command "locale -a" or click below to see the same list.')
+      .' '. t('If your system/server is ubuntu (debian like) you can install more languages with the aptitude or synaptic package manager. Search for -language-pack-*-base.')
+      .' '. t('If you install for example -language-pack-en-base you get over 10+ locales extra, like en_US, en_GB, en_AU, en_CA etc.')
+      .' '. l('Click here to see an overview of installed locales on your system.', 'invoice/installed_locales'),
     '#size' => 8,
   );
   $form['general']['date_format'] = array(
@@ -308,7 +337,7 @@ function invoice_settings_form() {
     '#title' => t('Date format'),
     '#required' => TRUE,
     '#default_value' => variable_get('invoice_date_format', ''),
-    '#description' => t('The date on the invoice will look like: '. date(variable_get('invoice_date_format', ''))),
+    '#description' => t('The date on the invoice will look like: @date_format', array('@date_format' => date(variable_get('invoice_date_format', '')))),
     '#size' => 20,
   );
   $form['general']['vat'] = array(
@@ -326,79 +355,139 @@ function invoice_settings_form() {
     '#description' => t('Pay limit in days'),
     '#size' => 3,
   );
-  $form['general']['supplier'] = array(
+  $form['general']['invoice_number_zerofill'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Invoice number zerofill'),
+    '#required' => FALSE,
+    '#default_value' => variable_get('invoice_invoice_number_zerofill', ''),
+    '#description' => t('If you want an invoice number to be displayed as "0001" fill in 4. If you just want to display invoice number "1" leave/set empty.'),
+    '#size' => 3,
+  );
+  $form['general']['invoice_number_prefix'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Invoice number prefix'),
+    '#required' => FALSE,
+    '#default_value' => variable_get('invoice_invoice_number_prefix', ''),
+    '#description' => t('If you want an invoice number to be displayed as "@year0001" fill in "%Y". Fillin 4 in the zerofill field above for extra zero values.', array('@year' => date('Y')))
+                    .' '. t('If a new year is reached the numbering will still continue sequentially, so if the year ended with "@year0578", the next year will start with "@next_year0579"', array('@year' => date('Y'), '@next_year' => date('Y') + 1))
+                    .' '. t('All !date values may be entered here with a "%" sign before it or every other text you like.', array('!date' => l('date', 'http://www.php.net/date', array('absolute' => TRUE)))),
+    '#size' => 20,
+  );
+    
+  /*------------------------------------------------------*/
+  
+  $form['general']['display_column'] = array(
     '#type' => 'fieldset',
-    '#title' => t('Supplier settings'),
+    '#title' => t('Display invoice columns'),
     '#collapsible' => TRUE,
     '#collapsed' => TRUE,
   );
-  $form['general']['supplier']['company_name'] = array(
+  $form['general']['display_column']['display_column_vat'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('VAT'),
+    '#required' => FALSE,
+    '#default_value' => variable_get('invoice_display_column_vat', ''),    
+  );
+  $form['general']['display_column']['display_column_exunitcost'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Unitcost (ex)'),
+    '#required' => FALSE,
+    '#default_value' => variable_get('invoice_display_column_exunitcost', ''),    
+  );
+  $form['general']['display_column']['display_column_incunitcost'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Unitcost (inc)'),
+    '#required' => FALSE,
+    '#default_value' => variable_get('invoice_display_column_incunitcost', ''),    
+  );
+  $form['general']['display_column']['display_column_extotal'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Total (ex)'),
+    '#required' => FALSE,
+    '#default_value' => variable_get('invoice_display_column_extotal', ''),    
+  );
+  $form['general']['display_column']['display_column_inctotal'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Total (inc)'),
+    '#required' => FALSE,
+    '#default_value' => variable_get('invoice_display_column_inctotal', ''),    
+  );
+  
+  /*------------------------------------------------------*/
+  
+  $form['general']['supplier'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Supplier details'),
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+  );
+  $form['general']['supplier']['supplier_company_name'] = array(
     '#type' => 'textfield',
     '#title' => t('Company name'),
     '#required' => FALSE,
     '#default_value' => variable_get('invoice_supplier_company_name', ''),    
   );
-  $form['general']['supplier']['street'] = array(
+  $form['general']['supplier']['supplier_street'] = array(
     '#type' => 'textfield',
     '#title' => t('Street'),
     '#required' => FALSE,
     '#default_value' => variable_get('invoice_supplier_street', ''),    
   );
-  $form['general']['supplier']['building_number'] = array(
+  $form['general']['supplier']['supplier_building_number'] = array(
     '#type' => 'textfield',
     '#title' => t('Building number'),
     '#required' => FALSE,
     '#default_value' => variable_get('invoice_supplier_building_number', ''),    
   );
-  $form['general']['supplier']['zipcode'] = array(
+  $form['general']['supplier']['supplier_zipcode'] = array(
     '#type' => 'textfield',
     '#title' => t('Zipcode'),
     '#required' => FALSE,
     '#default_value' => variable_get('invoice_supplier_zipcode', ''),    
   );
-  $form['general']['supplier']['city'] = array(
+  $form['general']['supplier']['supplier_city'] = array(
     '#type' => 'textfield',
     '#title' => t('City'),
     '#required' => FALSE,
     '#default_value' => variable_get('invoice_supplier_city', ''),    
   );
-  $form['general']['supplier']['country'] = array(
+  $form['general']['supplier']['supplier_country'] = array(
     '#type' => 'textfield',
     '#title' => t('Country'),
     '#required' => FALSE,
     '#default_value' => variable_get('invoice_supplier_country', ''),    
   );
-  $form['general']['supplier']['phone'] = array(
+  $form['general']['supplier']['supplier_phone'] = array(
     '#type' => 'textfield',
     '#title' => t('Phone'),
     '#required' => FALSE,
     '#default_value' => variable_get('invoice_supplier_phone', ''),    
   );  
-  $form['general']['supplier']['fax'] = array(
+  $form['general']['supplier']['supplier_fax'] = array(
     '#type' => 'textfield',
     '#title' => t('Fax'),
     '#required' => FALSE,
     '#default_value' => variable_get('invoice_supplier_fax', ''),    
   );
-  $form['general']['supplier']['email'] = array(
+  $form['general']['supplier']['supplier_email'] = array(
     '#type' => 'textfield',
     '#title' => t('Email'),
     '#required' => FALSE,
     '#default_value' => variable_get('invoice_supplier_email', ''),    
   );
-  $form['general']['supplier']['web'] = array(
+  $form['general']['supplier']['supplier_web'] = array(
     '#type' => 'textfield',
     '#title' => t('Web address'),
     '#required' => FALSE,
     '#default_value' => variable_get('invoice_supplier_web', ''),    
   );
-  $form['general']['supplier']['coc_number'] = array(
+  $form['general']['supplier']['supplier_coc_number'] = array(
     '#type' => 'textfield',
     '#title' => t('CoC Number'),
     '#required' => FALSE,
     '#default_value' => variable_get('invoice_supplier_coc_number', ''),    
   );
-  $form['general']['supplier']['vat_number'] = array(
+  $form['general']['supplier']['supplier_vat_number'] = array(
     '#type' => 'textfield',
     '#title' => t('VAT Number'),
     '#required' => FALSE,
@@ -420,7 +509,9 @@ function invoice_settings_form() {
     '#size' => 1,
   );
 
+  /*------------------------------------------------------*/
   // Build form for template values
+  
   foreach ($a_templates as $s_template) {
     $form[$s_template] = array(
       '#type' => 'fieldset',
@@ -434,12 +525,15 @@ function invoice_settings_form() {
       '#title' => t('Locale'),
       '#required' => FALSE,
       '#default_value' => _invoice_get_variable($s_template, 'locale', ''),
-      '#description' => t('Category/locale names can be found in !rfc1766 and !iso639. Different systems have different naming schemes for locales.',
+      '#description' => t('Category/locale names can be found in !rfc1766 and !iso639. Systems can have different naming schemes for locales.',
         array(
-         '!rfc1766' => l('» RFC 1766', 'http://www.faqs.org/rfcs/rfc1766', array('absolute' => TRUE)),
-         '!iso639' => l('» ISO 639', 'http://www.w3.org/WAI/ER/IG/ert/iso639.htm', array('absolute' => TRUE)),
-        )
-      ),
+	       '!rfc1766' => l('» RFC 1766', 'http://www.faqs.org/rfcs/rfc1766', array('absolute' => TRUE)),
+	       '!iso639' => l('» ISO 639', 'http://www.w3.org/WAI/ER/IG/ert/iso639.htm', array('absolute' => TRUE)),
+	      )
+	    ) .' '. t('On linux you can check the available locales on the server with the command "locale -a" or click below to see the same list.')
+	      .' '. t('If your system/server is ubuntu (debian like) you can install more languages with the aptitude or synaptic package manager. Search for -language-pack-*-base.')
+	      .' '. t('If you install for example -language-pack-en-base you get over 10+ locales extra, like en_US, en_GB, en_AU, en_CA etc.')
+	      .' '. l('Click here to see an overview of installed locales on your system.', 'invoice/installed_locales'),
       '#size' => 20,
     );
     $form[$s_template][$s_template .'_date_format'] = array(
@@ -447,7 +541,7 @@ function invoice_settings_form() {
       '#title' => t('Date format'),
       '#required' => FALSE,
       '#default_value' => _invoice_get_variable($s_template, 'date_format', ''),
-      '#description' => t('The date on the invoice will look like: '. date(_invoice_get_variable($s_template, 'date_format'))),
+      '#description' => t('The date on the invoice will look like: @date_format', array('@date_format' => date(_invoice_get_variable($s_template, 'date_format')))),
       '#size' => 20,
     );
     $form[$s_template][$s_template .'_vat'] = array(
@@ -465,9 +559,53 @@ function invoice_settings_form() {
       '#description' => t('Pay limit in days'),
       '#size' => 3,
     );
+    
+    /*------------------------------------------------------*/
+	  
+    $s_fieldset_name = '_display_column';
+    
+	  $form[$s_template][$s_template .'_display_column'] = array(
+	    '#type' => 'fieldset',
+	    '#title' => t('Display invoice columns'),
+	    '#collapsible' => TRUE,
+	    '#collapsed' => TRUE,
+	  );
+	  $form[$s_template][$s_template .'_display_column'][$s_template . $s_fieldset_name .'_vat'] = array(
+	    '#type' => 'checkbox',
+	    '#title' => t('VAT'),
+	    '#required' => FALSE,
+	    '#default_value' => _invoice_get_variable($s_template, 'display_column_vat', ''),    
+	  );
+	  $form[$s_template][$s_template .'_display_column'][$s_template . $s_fieldset_name .'_exunitcost'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Unitcost (ex)'),
+      '#required' => FALSE,
+      '#default_value' => _invoice_get_variable($s_template, 'display_column_exunitcost', ''),    
+    );
+    $form[$s_template][$s_template .'_display_column'][$s_template . $s_fieldset_name .'_incunitcost'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Unitcost (inc)'),
+      '#required' => FALSE,
+      '#default_value' => _invoice_get_variable($s_template, 'display_column_incunitcost', ''),    
+    );
+    $form[$s_template][$s_template .'_display_column'][$s_template . $s_fieldset_name .'_extotal'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Total (ex)'),
+      '#required' => FALSE,
+      '#default_value' => _invoice_get_variable($s_template, 'display_column_extotal', ''),    
+    );
+    $form[$s_template][$s_template .'_display_column'][$s_template . $s_fieldset_name .'_inctotal'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Total (inc)'),
+      '#required' => FALSE,
+      '#default_value' => _invoice_get_variable($s_template, 'display_column_inctotal', ''),    
+    );
+	  
+	  /*------------------------------------------------------*/
+    
     $form[$s_template][$s_template .'_supplier'] = array(
       '#type' => 'fieldset',
-      '#title' => t('Supplier settings'),
+      '#title' => t('Supplier details'),
       '#collapsible' => TRUE,
       '#collapsed' => TRUE,
     );
