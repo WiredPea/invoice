@@ -126,6 +126,16 @@
 .invoice-wrapper tfoot td.footer {
   padding-top:40px;
 }
+.invoice-wrapper .additional-information {
+	padding-top:40px;
+}
+.invoice-wrapper .invoice-description, .invoice-wrapper .pay-limit {
+	padding-top:20px;
+}
+.invoice-wrapper .pay-limit {
+	font-weight:bold;
+}
+
 
 /* Client */
 .invoice-wrapper .client-wrapper {

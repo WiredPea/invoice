@@ -12,8 +12,12 @@
 
 /**
  * Function to create the invoice layout
+ * 
+ * Documentation available at:
+ * - http://www.digitaljunkies.ca/dompdf/faq.php
+ * - http://www.digitaljunkies.ca/dompdf/usage.php
  */
-function _invoice_get_template_output($invoice, $type=NULL) {
+function _invoice_default_get_template_output($invoice, $type=NULL) {
   ob_start();
   
   // Create alias
@@ -87,7 +91,7 @@ function _invoice_get_template_output($invoice, $type=NULL) {
   }
   
   echo '
-  <table>
+  <table class="invoice-table">
   <thead>
   <tr class="one">  
     <td class="one">
@@ -135,7 +139,7 @@ function _invoice_get_template_output($invoice, $type=NULL) {
           </td>
           <td class="two">
             <strong>'. t('Invoice number') .'</strong>
-            <div>'. $invoice->invoice['invoice_number'] .'</div>
+            <div>'. $invoice->invoice['formatted_invoice_number'] .'</div>
           </td>
           <td class="three">
            <strong>'. t('Client number') .'</strong>
@@ -156,20 +160,66 @@ function _invoice_get_template_output($invoice, $type=NULL) {
     </td>
   </tr>
   </thead>
-  <tbody>
+  <tbody>';
+  
+  /*--------- invoice items header ---------*/
+
+  // If an invoice has items with different vat values this column must always be shown.
+  $vat = NULL;
+  $multiple_vat_values = FALSE;  
+  foreach ($invoice->invoice_items as $item) {    
+    // Set vat value for the first time
+    if (is_null($vat)) {
+      $vat = $item['vat'];  
+    }
+    
+    if ($item['vat'] !== $vat) {
+      $multiple_vat_values = TRUE;
+    }
+  }
+  
+  echo '
     <tr>
       <td colspan="3" class="items">
         <table class="items">
-          <tr class="one">
-            <th class="description">'. t('Description') .'</td>
-            <th>'. t('VAT') .'</td>
-            <th>'. t('Quantity') .'</td>
-            <th>'. t('Unitcost') .' ('. t('ex') .')</td>
-            <th>'. t('Unitcost') .' ('. t('inc') .')</td>
-            <th>'. t('Total') .' ('. t('ex') .')</td>
-            <th>'. t('Total') .' ('. t('inc') .')</td>
-          </tr>';
+          <tr class="one">';
+          
+          $colspan = 0;
   
+          echo '<th class="description">'. t('Description') .'</td>';
+          
+          if (_invoice_get_variable($template, 'display_column_vat') || $multiple_vat_values === TRUE) {
+            echo '<th>'. t('VAT') .'</td>';
+            $colspan++;
+          }          
+          
+          echo '<th>'. t('Quantity') .'</td>';         
+          
+          if (_invoice_get_variable($template, 'display_column_exunitcost')) {
+            echo '<th>'. t('Unitcost') .' ('. t('ex') .')</td>';
+            $colspan++;
+          }
+          
+          if (_invoice_get_variable($template, 'display_column_incunitcost')) {
+            echo '<th>'. t('Unitcost') .' ('. t('inc') .')</td>';
+            $colspan++;
+          }
+          
+          if (_invoice_get_variable($template, 'display_column_extotal')) {
+            echo '<th>'. t('Total') .' ('. t('ex') .')</td>';
+            $colspan++;
+          }
+          
+          if (_invoice_get_variable($template, 'display_column_inctotal')) {
+            echo '<th>'. t('Total') .' ('. t('inc') .')</td>';
+            $colspan++;
+          }
+          
+          echo '</tr>';
+  /*--------------- end --------------------*/
+  
+  /*------------ invoice items -------------*/
+          
   $i=0;
   foreach ($invoice->invoice_items as $item) {    
     if ($i == 0) {
@@ -181,22 +231,39 @@ function _invoice_get_template_output($invoice, $type=NULL) {
       $i=0; 
     }
     
-    echo '
-    <tr class="'. $class .'">
-      <td class="description">'. $item['description'] .'</td>
-      <td>'. $item['vat'] .'%</td>
-      <td>'. $item['quantity'] .'</td>
-      <td>'. $item['formatted_exunitcost'] .'</td>
-      <td>'. $item['formatted_incunitcost'] .'</td>
-      <td>'. $item['formatted_extotal'] .'</td>
-      <td>'. $item['formatted_inctotal'] .'</td>
-    </tr>
-    ';    
+    echo '<tr class="'. $class .'">';
+    
+      echo '<td class="description">'. $item['description'] .'</td>';
+
+      if (_invoice_get_variable($template, 'display_column_vat') || $multiple_vat_values === TRUE) {
+        echo '<td>'. $item['vat'] .'%</td>';
+      }
+      
+      echo '<td>'. $item['quantity'] .'</td>';
+      
+      if (_invoice_get_variable($template, 'display_column_exunitcost')) {
+        echo '<td>'. $item['formatted_exunitcost'] .'</td>';
+      }
+      
+      if (_invoice_get_variable($template, 'display_column_incunitcost')) {
+        echo '<td>'. $item['formatted_incunitcost'] .'</td>';
+      }
+      
+      if (_invoice_get_variable($template, 'display_column_extotal')) {
+        echo '<td>'. $item['formatted_extotal'] .'</td>';
+      }
+      
+      if (_invoice_get_variable($template, 'display_column_inctotal')) {
+        echo '<td>'. $item['formatted_inctotal'] .'</td>';
+      }
+      
+    echo '</tr>';    
   }
+  /*--------------- end --------------------*/
   
   echo '
           <tr class="total">
-            <td colspan="5"></td>
+            <td colspan="'. $colspan .'"></td>
             <td class="extotal">'. $invoice->invoice['formatted_extotal'] .'</td>
             <td class="inctotal">'. $invoice->invoice['formatted_inctotal'] .'</td>
           </tr>
@@ -230,6 +297,12 @@ function _invoice_get_template_output($invoice, $type=NULL) {
          </tr>
         </table>
       </td>
+    </tr>
+    <tr>
+    <td colspan="3" class="additional-information">
+      <div class="invoice-description">'. nl2br($invoice->invoice['description']) .'
+      <div class="pay-limit">'. t('We kindly ask you to pay this invoice within @days days.', array('@days' => $invoice->invoice['pay_limit'])) .'
+    </td>
     </tr>
   </tbody>
   <tfoot>
