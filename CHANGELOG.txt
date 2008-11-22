@@ -11,6 +11,12 @@ CHANGELOG (Date format: dd-mm-yyyy)
 =========================================
 
 22-11-2008:
+* Fixed bug of undefined function in the install file
+* Fixed some text in Dutch translation file
+
+Released: Invoice 6.x-1.0-rc1
+
+22-11-2008:
 * Update dutch translation file
 * Added a solid solution for removing invoices from "node" overview
 

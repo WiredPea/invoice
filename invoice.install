@@ -25,7 +25,26 @@ function invoice_install() {
   variable_set('invoice_invoice_number_prefix', '%Y');
   variable_set('invoice_default_template', 'default');
   variable_set('invoice_supplier_company_name', 'My company');
-  _make_sure_node_promote_flag_is_off();  
+
+  /**
+   * Makes sure that node promote flag is off
+   *
+   * On ?q=admin/content/node-type/invoice there is a checkbox in the workflow fieldset that is
+   * called "Promoted to front page", if this is turned on invoices will be displayed at ?q=node
+   * global node overview. Because invoices are private, I guess this must always be disabled
+   * for anyone.
+   */
+  $node_options = variable_get('node_options_invoice', array());
+  if (in_array('promote', $node_options)) {
+    foreach ($node_options as $key => $option) {
+      if ($option == 'promote') {
+        unset($node_options[$key]);
+      }
+    }
+  }
+
+  $node_options[] = 'status';
+  variable_set('node_options_invoice', $node_options);
 }
 
 /**
@@ -191,8 +210,26 @@ function invoice_update_3() {
  * @return array Array with query results
  */
 function invoice_update_4() {
-	_make_sure_node_promote_flag_is_off();
-	db_query("UPDATE {node} SET promote=0 WHERE type='invoice'");
+  /**
+   * Makes sure that node promote flag is off
+   *
+   * On ?q=admin/content/node-type/invoice there is a checkbox in the workflow fieldset that is
+   * called "Promoted to front page", if this is turned on invoices will be displayed at ?q=node
+   * global node overview. Because invoices are private, I guess this must always be disabled
+   * for anyone.
+   */
+  $node_options = variable_get('node_options_invoice', array());
+  if (in_array('promote', $node_options)) {
+    foreach ($node_options as $key => $option) {
+      if ($option == 'promote') {
+        unset($node_options[$key]);
+      }
+    }
+  }
+  variable_set('node_options_invoice', $node_options);
+  
+  db_query("UPDATE {node} SET promote=0 WHERE type='invoice'");
+  
   return array();
 }
 
