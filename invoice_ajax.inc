@@ -29,7 +29,7 @@ $(document).ready(function(){
 
 function invoice_set_template(value) {
   $.get("http://"+Drupal.settings['invoice']['host']+Drupal.settings['basePath']+"invoice/set/template",
-    { value: value,
+    { value: value
     },
     function(data) {    
       if (data['error'] != undefined && data['error'] != '') {        
@@ -45,7 +45,7 @@ function invoice_set_template(value) {
 
 function invoice_get_customer_info(value) {
   $.get("http://"+Drupal.settings['invoice']['host']+Drupal.settings['basePath']+"invoice/get/customer_info",
-    { value: value,
+    { value: value
     },
     function(data) {    
       if (data['error'] != undefined && data['error'] != '') {        
@@ -93,7 +93,7 @@ function invoice_save_item(value) {
       quantity: $("#edit-quantity").val(),
       price_without_vat: $("#edit-price-without-vat").val(),
       price_with_vat: $("#edit-price-with-vat").val(),
-      vat: $("#edit-vat").val(),
+      vat: $("#edit-vat").val()
     },
     function(data) {    
       if (data['error'] != undefined && data['error'] != '') {        
@@ -139,7 +139,7 @@ function invoice_save_item(value) {
 function invoice_edit_item(value) {
   $.get("http://"+Drupal.settings['invoice']['host']+Drupal.settings['basePath']+"invoice/edit/item",
     { iid: value,
-      invoice_number: $("#edit-invoice-number").val(),
+      invoice_number: $("#edit-invoice-number").val()
     },
     function(data) {    
       if (data['error'] != undefined && data['error'] != '') {        
@@ -162,7 +162,7 @@ function invoice_edit_item(value) {
 function invoice_delete_item(value) {
   $.get("http://"+Drupal.settings['invoice']['host']+Drupal.settings['basePath']+"invoice/delete/item",
     { iid: value,
-      invoice_number: $("#edit-invoice-number").val(),
+      invoice_number: $("#edit-invoice-number").val()
     },
     function(data) {    
       if (data['error'] != undefined && data['error'] != '') {        
