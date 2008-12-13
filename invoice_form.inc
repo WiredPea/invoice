@@ -719,9 +719,9 @@ function _invoice_get_invoice_items($invoice_id=0, $type=NULL) {
       $row->vat .'%',
       $row->quantity,
       money_format('%.3n', _invoice_round($row->unitcost, 3)),
-      money_format('%.2n', _invoice_round($row->unitcost * ('1.'. $row->vat), 2)),
+      money_format('%.2n', _invoice_round($row->unitcost * _invoice_vat_percent_to_decimal($row->vat), 2)),
       money_format('%.2n', _invoice_round($row->quantity * $row->unitcost, 2)),
-      money_format('%.2n', _invoice_round($row->quantity * $row->unitcost * ('1.'. $row->vat), 2)),
+      money_format('%.2n', _invoice_round($row->quantity * $row->unitcost * _invoice_vat_percent_to_decimal($row->vat), 2)),
       array('data' =>
       _invoice_get_icon('edit', NULL, array(
         'onclick' => sprintf("invoice_edit_item('%d')", $row->iid),

@@ -302,7 +302,7 @@ function invoice_save_item() {
     $unitcost = $fv['price_without_vat'];
   }
   else {
-    $unitcost = $fv['price_with_vat'] / ('1.'. variable_get('invoice_vat', 0));
+    $unitcost = $fv['price_with_vat'] / _invoice_vat_percent_to_decimal(variable_get('invoice_vat', 0));
   }
   
   // Round the price to 3 decimals
@@ -351,9 +351,9 @@ function invoice_save_item() {
     $a_data['vat']          = check_plain($fv['vat']) .'%';
     $a_data['quantity']     = check_plain($fv['quantity']);
     $a_data['exunitcost']   = money_format('%.3n', _invoice_round($unitcost, 3));
-    $a_data['incunitcost']  = money_format('%.2n', _invoice_round($unitcost * ('1.'. $fv['vat']), 2));
+    $a_data['incunitcost']  = money_format('%.2n', _invoice_round($unitcost * _invoice_vat_percent_to_decimal($fv['vat']), 2));
     $a_data['exsubtotal']   = money_format('%.2n', _invoice_round($fv['quantity'] * $unitcost, 2));
-    $a_data['incsubtotal']  = money_format('%.2n', _invoice_round($fv['quantity'] * $unitcost * ('1.'. $fv['vat']), 2));
+    $a_data['incsubtotal']  = money_format('%.2n', _invoice_round($fv['quantity'] * $unitcost * _invoice_vat_percent_to_decimal($fv['vat']), 2));
     $a_data['actionvalue']  = t('Add item');
   }
   else {
@@ -367,9 +367,9 @@ function invoice_save_item() {
       check_plain($fv['vat']) .'%',
       check_plain($fv['quantity']),
       money_format('%.3n', _invoice_round($unitcost, 3)),
-      money_format('%.2n', _invoice_round($unitcost * ('1.'. $fv['vat']), 2)),
+      money_format('%.2n', _invoice_round($unitcost * _invoice_vat_percent_to_decimal($fv['vat']), 2)),
       money_format('%.2n', _invoice_round($fv['quantity'] * $unitcost, 2)),
-      money_format('%.2n', _invoice_round($fv['quantity'] * $unitcost * ('1.'. $fv['vat']), 3)),
+      money_format('%.2n', _invoice_round($fv['quantity'] * $unitcost * _invoice_vat_percent_to_decimal($fv['vat']), 2)),
       _invoice_get_icon('edit', NULL, array(
         'onclick' => sprintf("invoice_edit_item('%d')", db_last_insert_id('invoice_item', 'iid')),
         'class' => 'mouse-pointer',
@@ -425,7 +425,7 @@ function invoice_edit_item() {
     $a_data['vat'] = $a_invoice->vat;
     $a_data['quantity'] = $a_invoice->quantity;
     $a_data['exunitcost'] = $a_invoice->unitcost;
-    $a_data['incunitcost'] = $a_invoice->unitcost * ('1.'. variable_get('invoice_vat', 0));
+    $a_data['incunitcost'] = $a_invoice->unitcost * _invoice_vat_percent_to_decimal(variable_get('invoice_vat', 0));
     $a_data['actionvalue']  = t('Save item');
   }
   

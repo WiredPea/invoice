@@ -339,9 +339,9 @@ function invoice_load($node) {
       'unitcost' => $row->unitcost,
       'vat' => $row->vat,
       'formatted_exunitcost' => money_format('%.'. $exunitcost_roundnum .'n', $exunitcost),
-      'formatted_incunitcost' => money_format('%.2n', _invoice_round($row->unitcost * ('1.'. $row->vat), 2)),
+      'formatted_incunitcost' => money_format('%.2n', _invoice_round($row->unitcost * _invoice_vat_percent_to_decimal($row->vat), 2)),
       'formatted_extotal' => money_format('%.2n', _invoice_round($row->quantity * $row->unitcost, 2)),
-      'formatted_inctotal' => money_format('%.2n', _invoice_round($row->quantity * $row->unitcost * ('1.'. $row->vat), 2)), 
+      'formatted_inctotal' => money_format('%.2n', _invoice_round($row->quantity * $row->unitcost * _invoice_vat_percent_to_decimal($row->vat), 2)), 
     );
   }
       

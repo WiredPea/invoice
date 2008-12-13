@@ -39,7 +39,7 @@ function _invoice_get_invoice_totals($invoice_number, $user_id=0) {
   
   while ($row = db_fetch_object($result)) {
     $a_totals['extotal'] += _invoice_round($row->extotal, 2);
-    $a_totals['inctotal'] += ($row->extotal * (1 + ($row->vat / 100)));
+    $a_totals['inctotal'] += ($row->extotal * _invoice_vat_percent_to_decimal($row->vat));
     $a_totals['vattotal'] += $row->vattotal;
   }
 
@@ -50,6 +50,18 @@ function _invoice_get_invoice_totals($invoice_number, $user_id=0) {
   return $a_totals;
 }
 
+/**
+ * Converts a VAT value in percent to decimal
+ * 
+ * For examle:
+ * A vat value of 20,5 will be converted into 1.205
+ * 
+ * @param mixed $vat
+ */
+function _invoice_vat_percent_to_decimal($percent_vat) {
+	$decimal_vat = 1 + ($percent_vat / 100);
+	return $decimal_vat;
+}
 
 /**
  * Helper function to easily get the name of the chosen template when adding an invoice
