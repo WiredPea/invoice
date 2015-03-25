@@ -22,4 +22,5 @@ This module is developed by P. Vogelaar of Platina Designs.
 
 Other comments:
 * This module supports the pathauto module and is also recommended: http://drupal.org/project/pathauto
-* Multiple invoice templates can be created (see above)  
+* Multiple invoice templates can be created (see above)
+ 
